@@ -6,13 +6,7 @@
   const toastRegion = document.getElementById("toast-region");
 
   const icons = {
-    home: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z"/><path d="M9 21v-7h6v7"/></svg>',
-    compass: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/></svg>',
-    bookmark: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4.5A1.5 1.5 0 0 1 7.5 3h9A1.5 1.5 0 0 1 18 4.5V21l-6-3.6L6 21V4.5Z"/></svg>',
-    user: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',
     plus: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
-    search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>',
-    bell: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 22h4"/></svg>',
     message: '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5a7.4 7.4 0 0 1-8 7.5 8.3 8.3 0 0 1-4-.9L4 20l1.6-3.4A7.2 7.2 0 0 1 4 11.5a7.4 7.4 0 0 1 8-7.5 7.4 7.4 0 0 1 8 7.5Z"/></svg>',
     lock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>',
     unlock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.5-1.9"/></svg>',
@@ -26,7 +20,7 @@
   let state = loadState();
 
   function loadState() {
-    return { currentUserId: null, activeView: "home", activeFeed: "all", activeTag: "all", sort: "newest", search: "", commentsOpen: {}, csrf: document.querySelector('meta[name="csrf-token"]')?.content || "", users: [], posts: [], accessRequests: [] };
+    return { currentUserId: null, activeFeed: "all", activeTag: "all", commentsOpen: {}, csrf: document.querySelector('meta[name="csrf-token"]')?.content || "", users: [], posts: [], accessRequests: [] };
   }
 
   function persist() {}
@@ -63,10 +57,6 @@
     const d = new Date(date);
     return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "short" }).format(d).replace(" г.", "");
   }
-  function formatLongDate(date) {
-    const d = new Date(date);
-    return new Intl.DateTimeFormat("ru-RU", { day: "numeric", month: "long", year: "numeric" }).format(d);
-  }
   function getAvatar(user, sizeClass = "") {
     return `<span class="avatar is-${escapeHtml(user?.tone || "yellow")} ${sizeClass}" aria-hidden="true">${escapeHtml(initials(user))}</span>`;
   }
@@ -77,8 +67,6 @@
     toastRegion.appendChild(node);
     window.setTimeout(() => node.remove(), 3600);
   }
-  function uid(prefix) { return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
-
   function render() {
     const user = currentUser();
     const visibleRequests = state.accessRequests.filter((request) => request.status === "pending" && state.posts.some((post) => post.id === request.postId && post.authorId === user?.id));
@@ -86,12 +74,9 @@
       <aside class="sidebar">
         <a class="brand" href="#" data-action="go-home"><span class="brand-mark">К</span><span class="brand-name">кейс</span></a>
         <p class="brand-note">Блог Twizzle &amp; Swizzle</p>
-        <p class="sidebar-label">Навигация</p>
+        <p class="sidebar-label">Кейс-задача №3</p>
         <nav class="nav-list" aria-label="Основная навигация">
-          ${navItem("home", "Лента", "home")}
-          ${navItem("discover", "Обзор", "compass")}
-          ${navItem("saved", "Мои публикации", "bookmark")}
-          ${navItem("profile", "Профиль", "user")}
+          <button class="nav-item is-active" data-action="go-home">Лента публикаций</button>
         </nav>
         <button class="sidebar-new-post" data-action="new-post">${icons.plus}<span>Новая запись</span></button>
         <div class="sidebar-foot">
@@ -100,51 +85,38 @@
       </aside>
       <main class="main-area">
         <header class="topbar">
-          <div class="topbar-context"><span class="live-dot"></span><span>${state.activeView === "profile" ? "Ваше пространство" : state.activeView === "saved" ? "Ваши публикации" : "Лента обновилась"}</span></div>
-          <div class="topbar-actions"><button class="icon-button" data-action="notifications" aria-label="Уведомления">${icons.bell}</button>${user ? `<div class="topbar-user">${getAvatar(user)}<span class="topbar-user-name">${escapeHtml(user.name.split(" ")[0])}</span></div>` : `<button class="button-secondary" data-action="auth">Войти</button>`}</div>
+          <div class="topbar-context"><span class="live-dot"></span><span>Лента публикаций</span></div>
+          <div class="topbar-actions">${user ? `<div class="topbar-user">${getAvatar(user)}<span class="topbar-user-name">${escapeHtml(user.name.split(" ")[0])}</span></div>` : `<button class="button-secondary" data-action="auth">Войти</button>`}</div>
         </header>
         <div class="content-wrap">${renderMainContent(visibleRequests)}</div>
       </main>`;
     bindEvents();
   }
 
-  function navItem(view, label, iconName) {
-    return `<button class="nav-item ${state.activeView === view ? "is-active" : ""}" data-view="${view}">${icons[iconName]}<span>${label}</span></button>`;
-  }
-
   function renderMainContent(visibleRequests) {
-    if (state.activeView === "profile") return renderProfile();
     return `
       <section class="hero">
-        <div><p class="eyebrow">${state.activeView === "discover" ? "Открытая полка" : state.activeView === "saved" ? "Ваши тексты" : "Среда для мыслей"}</p><h1>${state.activeView === "discover" ? "Найдите свой следующий <em>голос</em>." : state.activeView === "saved" ? "Ваши слова уже <em>здесь</em>." : "Мысль, которой стоит <em>поделиться.</em>"}</h1></div>
-        <p class="hero-copy">Публикации о фигурном катании, тренировках и одежде для выхода на лёд.</p>
+        <div><p class="eyebrow">Веб-приложение для блога</p><h1>Публикации, которыми хочется <em>поделиться.</em></h1></div>
+        <p class="hero-copy">Публичные записи, подписки, теги, комментарии и публикации «только по запросу».</p>
       </section>
       ${renderToolbar()}
-      <div class="layout-grid"><section class="feed-list" aria-label="Публикации">${renderFeed()}</section><aside class="aside-column">${renderTrending()}${renderRequests(visibleRequests)}${renderTagCloud()}</aside></div>`;
+      <div class="layout-grid"><section class="feed-list" aria-label="Публикации">${renderFeed()}</section><aside class="aside-column">${renderRequests(visibleRequests)}${renderTagCloud()}</aside></div>`;
   }
 
   function renderToolbar() {
-    const isHome = state.activeView === "home";
-    return `<div class="toolbar"><div class="feed-tabs">${isHome ? `<button class="tab-button ${state.activeFeed === "all" ? "is-active" : ""}" data-feed="all">Для вас</button><button class="tab-button ${state.activeFeed === "following" ? "is-active" : ""}" data-feed="following">Подписки</button>` : `<button class="tab-button is-active">${state.activeView === "discover" ? "Все публикации" : "Мои публикации"}</button>`}</div><div class="toolbar-tools"><label class="search-box" aria-label="Поиск по публикациям">${icons.search}<input type="search" data-search placeholder="Найти текст или тег" value="${escapeHtml(state.search)}" /></label><select class="select-control" data-sort aria-label="Сортировка"><option value="newest" ${state.sort === "newest" ? "selected" : ""}>Сначала новые</option><option value="oldest" ${state.sort === "oldest" ? "selected" : ""}>Сначала старые</option><option value="comments" ${state.sort === "comments" ? "selected" : ""}>Больше обсуждений</option><option value="tags" ${state.sort === "tags" ? "selected" : ""}>По тегам</option></select></div></div>`;
+    const tags = [...new Set(state.posts.flatMap((post) => post.tags))].sort((a, b) => a.localeCompare(b, "ru"));
+    return `<div class="toolbar"><div class="feed-tabs"><button class="tab-button ${state.activeFeed === "all" ? "is-active" : ""}" data-feed="all">Все публикации</button><button class="tab-button ${state.activeFeed === "following" ? "is-active" : ""}" data-feed="following">Подписки</button></div><label class="tag-sort-control"><span>Сортировка по тегу</span><select class="select-control" data-tag-select aria-label="Сортировка по тегу"><option value="all">Все теги</option>${tags.map((tag) => `<option value="${escapeHtml(tag)}" ${state.activeTag === tag ? "selected" : ""}>#${escapeHtml(tag)}</option>`).join("")}</select></label></div>`;
   }
 
   function getFilteredPosts() {
     const user = currentUser();
     let posts = [...state.posts];
-    if (state.activeView === "saved") posts = posts.filter((post) => String(post.authorId) === String(user?.id));
-    if (state.activeFeed === "following" && state.activeView === "home") posts = posts.filter((post) => user && (user.following || []).map(String).includes(String(post.authorId)));
+    if (state.activeFeed === "following") posts = posts.filter((post) => user && (user.following || []).map(String).includes(String(post.authorId)));
     if (state.activeTag !== "all") posts = posts.filter((post) => post.tags.includes(state.activeTag));
-    if (state.search.trim()) {
-      const query = state.search.trim().toLowerCase();
-      posts = posts.filter((post) => `${post.title} ${post.body || ""} ${post.excerpt || ""} ${post.tags.join(" ")}`.toLowerCase().includes(query));
-    }
     posts.sort((a, b) => {
-      if (state.sort === "tags") {
-        const tagsA = (a.tags || []).join(", ").toLocaleLowerCase("ru-RU");
-        const tagsB = (b.tags || []).join(", ").toLocaleLowerCase("ru-RU");
-        return tagsA.localeCompare(tagsB, "ru") || new Date(b.createdAt) - new Date(a.createdAt);
-      }
-      return state.sort === "oldest" ? new Date(a.createdAt) - new Date(b.createdAt) : state.sort === "comments" ? b.comments.length - a.comments.length : new Date(b.createdAt) - new Date(a.createdAt);
+      const tagsA = (a.tags || []).join(", ").toLocaleLowerCase("ru-RU");
+      const tagsB = (b.tags || []).join(", ").toLocaleLowerCase("ru-RU");
+      return tagsA.localeCompare(tagsB, "ru") || new Date(b.createdAt) - new Date(a.createdAt);
     });
     return posts;
   }
@@ -159,7 +131,7 @@
 
   function renderFeed() {
     const posts = getFilteredPosts();
-    if (!posts.length) return `<div class="empty-state"><h2>Здесь пока тихо</h2><p>${state.activeView === "saved" ? "У вас ещё нет публикаций. Начните с небольшой заметки." : "Попробуйте изменить поиск, тег или подписаться на нового автора."}</p><button class="button-primary" data-action="new-post">Написать запись</button></div>`;
+    if (!posts.length) return `<div class="empty-state"><h2>Здесь пока тихо</h2><p>${state.activeFeed === "following" ? "Подпишитесь на автора, чтобы собрать ленту по подпискам." : "Создайте первую запись или выберите другой тег."}</p><button class="button-primary" data-action="new-post">Написать запись</button></div>`;
     return posts.map((post, index) => renderPost(post, index)).join("");
   }
 
@@ -173,7 +145,7 @@
     const title = escapeHtml(post.title);
     const body = escapeHtml(post.body || post.excerpt);
     const excerpt = escapeHtml(post.excerpt || post.body || "");
-    return `<article class="post-card ${post.visibility === "request" ? "is-private" : ""} ${index === 0 && state.activeView === "home" ? "is-featured" : ""}" style="animation-delay:${Math.min(index * 70, 280)}ms" data-post-id="${post.id}">
+    return `<article class="post-card ${post.visibility === "request" ? "is-private" : ""} ${index === 0 ? "is-featured" : ""}" style="animation-delay:${Math.min(index * 70, 280)}ms" data-post-id="${post.id}">
       <div class="post-meta"><div class="author-line">${getAvatar(author)}<div class="author-copy"><div class="author-name">${escapeHtml(author?.name || "Автор")} ${isOwner ? `<span class="tag">вы</span>` : ""}</div><div class="author-handle">@${escapeHtml(author?.handle || "unknown")}</div></div></div><time class="post-date" datetime="${post.createdAt}">${formatDate(post.createdAt)}</time></div>
       <div class="post-kicker">${post.visibility === "request" ? icons.lock + " только по запросу" : "новая публикация"}</div>
       <h2>${title}</h2>
@@ -187,11 +159,6 @@
   function renderComment(comment) {
     const author = getUser(comment.userId);
     return `<div class="comment">${getAvatar(author)}<div class="comment-copy"><div class="comment-author">${escapeHtml(author?.name || "Пользователь")} <span class="author-handle">@${escapeHtml(author?.handle || "")}</span></div><p class="comment-text">${escapeHtml(comment.text)}</p></div></div>`;
-  }
-
-  function renderTrending() {
-    const trending = [...state.posts].sort((a, b) => b.comments.length - a.comments.length).slice(0, 3);
-    return `<section class="aside-block"><div class="aside-title"><h3>Сейчас обсуждают</h3><span>топ 3</span></div><div class="trend-list">${trending.map((post, i) => `<div class="trend-item"><span class="trend-number">0${i + 1}</span><div><p>${escapeHtml(post.title)}</p><small>${post.comments.length} ${plural(post.comments.length, "ответ", "ответа", "ответов")}</small></div></div>`).join("")}</div></section>`;
   }
 
   function renderRequests(requests) {
@@ -212,14 +179,6 @@
     return `<section class="aside-block"><div class="aside-title"><h3>Темы</h3><span>по тегам</span></div><div class="tag-cloud"><button class="tag is-clickable ${state.activeTag === "all" ? "is-active" : ""}" data-tag="all">Все</button>${tags.map(([tag]) => `<button class="tag is-clickable ${state.activeTag === tag ? "is-active" : ""}" data-tag="${escapeHtml(tag)}">#${escapeHtml(tag)}</button>`).join("")}</div></section>`;
   }
 
-  function renderProfile() {
-    const user = currentUser();
-    if (!user) return `<section class="empty-state"><p class="eyebrow">Ваше пространство</p><h2>Профиль появляется после входа</h2><p>Создайте аккаунт, чтобы писать свои заметки, собирать ленту по подпискам и открывать личные публикации.</p><button class="button-primary" data-action="auth">Войти или зарегистрироваться</button></section>`;
-    const ownPosts = state.posts.filter((post) => post.authorId === user.id);
-    const followers = state.users.filter((person) => person.following.includes(user.id)).length;
-    return `<section class="profile-panel"><div class="profile-hero">${getAvatar(user)}<div><h3>${escapeHtml(user.name)}</h3><p>@${escapeHtml(user.handle)} · ${escapeHtml(user.bio)}</p></div></div><div class="profile-stats"><div class="profile-stat"><strong>${ownPosts.length}</strong><span>публикаций</span></div><div class="profile-stat"><strong>${followers}</strong><span>подписчиков</span></div><div class="profile-stat"><strong>${user.following.length}</strong><span>подписок</span></div></div><div><p class="eyebrow">Настройки аккаунта</p><button class="button-secondary" data-action="logout">${icons.logout} Выйти из аккаунта</button></div></section>`;
-  }
-
   function plural(number, one, few, many) {
     const n = Math.abs(number) % 100;
     if (n >= 11 && n <= 19) return many;
@@ -228,23 +187,20 @@
   }
 
   function bindEvents() {
-    app.querySelectorAll("[data-view]").forEach((button) => button.addEventListener("click", () => { state.activeView = button.dataset.view; state.activeTag = "all"; state.search = ""; persist(); render(); }));
     app.querySelectorAll("[data-feed]").forEach((button) => button.addEventListener("click", () => { state.activeFeed = button.dataset.feed; persist(); render(); }));
-    app.querySelectorAll("[data-tag]").forEach((button) => button.addEventListener("click", () => { state.activeTag = button.dataset.tag; if (state.activeView === "profile") state.activeView = "home"; persist(); render(); }));
+    app.querySelectorAll("[data-tag]").forEach((button) => button.addEventListener("click", () => { state.activeTag = button.dataset.tag; persist(); render(); }));
     app.querySelectorAll("[data-action]").forEach((button) => button.addEventListener("click", handleAction));
-    app.querySelectorAll("[data-search]").forEach((input) => input.addEventListener("input", (event) => { state.search = event.target.value; render(); const fresh = app.querySelector("[data-search]"); if (fresh) { fresh.focus(); fresh.setSelectionRange(fresh.value.length, fresh.value.length); } }));
-    app.querySelectorAll("[data-sort]").forEach((select) => select.addEventListener("change", (event) => { state.sort = event.target.value; persist(); render(); }));
+    app.querySelectorAll("[data-tag-select]").forEach((select) => select.addEventListener("change", (event) => { state.activeTag = event.target.value; persist(); render(); }));
     app.querySelectorAll("[data-comment-form]").forEach((form) => form.addEventListener("submit", submitComment));
   }
 
   async function handleAction(event) {
     const button = event.currentTarget;
     const action = button.dataset.action;
-    if (action === "go-home") { event.preventDefault(); state.activeView = "home"; persist(); render(); return; }
+    if (action === "go-home") { event.preventDefault(); state.activeFeed = "all"; state.activeTag = "all"; persist(); render(); return; }
     if (action === "auth") { openAuthModal(); return; }
     if (action === "new-post") { if (!currentUser()) { openAuthModal(); return; } openPostModal(); return; }
     if (action === "logout") { try { const result = await api("logout"); Object.assign(state, result); toast(result.message); render(); } catch (error) { toast(error.message, "error"); } return; }
-    if (action === "notifications") { toast("Уведомления пока пусты"); return; }
     if (action === "toggle-comments") { const id = button.dataset.postId; state.commentsOpen[id] = !state.commentsOpen[id]; persist(); render(); return; }
     if (action === "toggle-menu") { const menu = app.querySelector(`[data-menu-for="${button.dataset.postId}"]`); app.querySelectorAll(".menu-popover").forEach((item) => item.classList.remove("is-open")); menu?.classList.toggle("is-open"); return; }
     if (action === "follow") { await toggleFollow(button.dataset.userId); return; }
@@ -285,7 +241,7 @@
   }
 
   function openAuthModal(mode = "login") {
-    modalRoot.innerHTML = `<div class="modal-backdrop" data-modal-backdrop><section class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><div class="modal-header"><div><h2 id="auth-title">${mode === "login" ? "С возвращением." : "Начните с одной мысли."}</h2><p>${mode === "login" ? "Войдите, чтобы писать, подписываться и обсуждать." : "Создайте свой профиль."}</p></div><button class="modal-close" data-close-modal aria-label="Закрыть">${icons.x}</button></div><form class="form-grid" data-auth-form><div class="field"><label for="auth-login">${mode === "login" ? "Логин или email" : "Ваше имя"}</label><input id="auth-login" name="login" required autocomplete="${mode === "login" ? "username" : "name"}" /></div>${mode === "register" ? `<div class="field"><label for="auth-handle">Логин</label><input id="auth-handle" name="handle" required pattern="[A-Za-zА-Яа-я0-9_]{3,24}" placeholder="например, sveta" /><span class="field-hint">Только буквы, цифры и нижнее подчёркивание.</span></div>` : ""}${mode === "register" ? `<div class="field"><label for="auth-bio">Коротко о себе</label><input id="auth-bio" name="bio" maxlength="120" placeholder="Что вы любите замечать?" /></div>` : ""}<div class="field"><label for="auth-password">Пароль</label><input id="auth-password" name="password" type="password" required minlength="${mode === "login" ? "1" : "4"}" autocomplete="${mode === "login" ? "current-password" : "new-password"}" /></div><div class="modal-footer"><button class="button-primary" type="submit">${mode === "login" ? "Войти" : "Создать аккаунт"}</button></div></form>${mode === "login" ? `<div class="demo-note">Демо-доступ: логин <strong>sveta</strong>, пароль <strong>demo</strong>.</div>` : ""}<p class="auth-switch">${mode === "login" ? "Ещё нет аккаунта?" : "Уже зарегистрированы?"} <button type="button" data-auth-switch="${mode === "login" ? "register" : "login"}">${mode === "login" ? "Создать его" : "Войти"}</button></p></section></div>`;
+    modalRoot.innerHTML = `<div class="modal-backdrop" data-modal-backdrop><section class="modal" role="dialog" aria-modal="true" aria-labelledby="auth-title"><div class="modal-header"><div><h2 id="auth-title">${mode === "login" ? "С возвращением." : "Начните с одной мысли."}</h2><p>${mode === "login" ? "Войдите, чтобы писать, подписываться и обсуждать." : "Создайте свой профиль."}</p></div><button class="modal-close" data-close-modal aria-label="Закрыть">${icons.x}</button></div><form class="form-grid" data-auth-form><div class="field"><label for="auth-login">${mode === "login" ? "Логин или email" : "Ваше имя"}</label><input id="auth-login" name="login" required autocomplete="${mode === "login" ? "username" : "name"}" /></div>${mode === "register" ? `<div class="field"><label for="auth-handle">Логин</label><input id="auth-handle" name="handle" required pattern="[A-Za-zА-Яа-я0-9_]{3,24}" placeholder="например, sveta" /><span class="field-hint">Только буквы, цифры и нижнее подчёркивание.</span></div>` : ""}<div class="field"><label for="auth-password">Пароль</label><input id="auth-password" name="password" type="password" required minlength="${mode === "login" ? "1" : "4"}" autocomplete="${mode === "login" ? "current-password" : "new-password"}" /></div><div class="modal-footer"><button class="button-primary" type="submit">${mode === "login" ? "Войти" : "Создать аккаунт"}</button></div></form>${mode === "login" ? `<div class="demo-note">Демо-доступ: логин <strong>sveta</strong>, пароль <strong>demo</strong>.</div>` : ""}<p class="auth-switch">${mode === "login" ? "Ещё нет аккаунта?" : "Уже зарегистрированы?"} <button type="button" data-auth-switch="${mode === "login" ? "register" : "login"}">${mode === "login" ? "Создать его" : "Войти"}</button></p></section></div>`;
     bindModalEvents();
   }
 
@@ -312,8 +268,8 @@
     const form = event.currentTarget;
     const data = new FormData(form);
     const register = !!form.querySelector("[name=handle]");
-    const payload = register ? { name: String(data.get("login") || "").trim(), handle: String(data.get("handle") || "").trim(), bio: String(data.get("bio") || "").trim(), password: String(data.get("password") || "") } : { login: String(data.get("login") || "").trim(), password: String(data.get("password") || "") };
-    try { const result = await api(register ? "register" : "login", payload); Object.assign(state, result); state.activeView = "home"; closeModal(); toast(result.message); render(); } catch (error) { toast(error.message, "error"); }
+    const payload = register ? { name: String(data.get("login") || "").trim(), handle: String(data.get("handle") || "").trim(), password: String(data.get("password") || "") } : { login: String(data.get("login") || "").trim(), password: String(data.get("password") || "") };
+    try { const result = await api(register ? "register" : "login", payload); Object.assign(state, result); closeModal(); toast(result.message); render(); } catch (error) { toast(error.message, "error"); }
   }
 
   async function submitPost(event) {

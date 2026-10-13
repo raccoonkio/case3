@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\DB;
 use PDO;
 use PDOException;
@@ -17,7 +17,7 @@ class BlogApiController extends Controller
         $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
         $pdo->exec('PRAGMA foreign_keys = ON');
 
-        if (!$request->session()->has('csrf')) {
+        if (! $request->session()->has('csrf')) {
             $request->session()->put('csrf', bin2hex(random_bytes(24)));
         }
 
@@ -44,6 +44,7 @@ class BlogApiController extends Controller
             };
         } catch (PDOException $exception) {
             report($exception);
+
             return $this->fail('Сервер не смог выполнить действие. Проверьте данные и повторите попытку.', 500);
         }
     }
@@ -53,14 +54,15 @@ class BlogApiController extends Controller
         $login = trim((string) ($data['login'] ?? ''));
         $password = (string) ($data['password'] ?? '');
         $user = $this->userByLogin($pdo, $login);
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (! $user || ! password_verify($password, $user['password_hash'])) {
             return $this->fail('Не удалось войти: проверьте логин и пароль.', 401);
         }
 
         $request->session()->regenerate();
         $request->session()->put('user_id', (int) $user['id']);
         $request->session()->put('csrf', bin2hex(random_bytes(24)));
-        return $this->json(['message' => 'С возвращением, ' . explode(' ', $user['name'])[0]] + $this->postState($request, $pdo));
+
+        return $this->json(['message' => 'С возвращением, '.explode(' ', $user['name'])[0]] + $this->postState($request, $pdo));
     }
 
     private function register(Request $request, PDO $pdo, array $data): JsonResponse
@@ -70,7 +72,7 @@ class BlogApiController extends Controller
         $password = (string) ($data['password'] ?? '');
         $bio = trim((string) ($data['bio'] ?? '')) ?: 'Новый автор';
 
-        if (mb_strlen($name) < 2 || !preg_match('/^[a-zа-яё0-9_]{3,24}$/iu', $handle) || mb_strlen($password) < 4) {
+        if (mb_strlen($name) < 2 || ! preg_match('/^[a-zа-яё0-9_]{3,24}$/iu', $handle) || mb_strlen($password) < 4) {
             return $this->fail('Проверьте имя, логин и пароль.');
         }
         $exists = $pdo->prepare('SELECT 1 FROM users WHERE lower(handle) = lower(?)');
@@ -84,6 +86,7 @@ class BlogApiController extends Controller
         $request->session()->regenerate();
         $request->session()->put('user_id', (int) $pdo->lastInsertId());
         $request->session()->put('csrf', bin2hex(random_bytes(24)));
+
         return $this->json(['message' => 'Аккаунт создан — добро пожаловать.'] + $this->postState($request, $pdo));
     }
 
@@ -91,6 +94,7 @@ class BlogApiController extends Controller
     {
         $request->session()->forget('user_id');
         $request->session()->put('csrf', bin2hex(random_bytes(24)));
+
         return $this->json(['message' => 'Вы вышли из аккаунта.'] + $this->postState($request, $pdo));
     }
 
@@ -108,6 +112,7 @@ class BlogApiController extends Controller
         $insert = $pdo->prepare('INSERT INTO posts (author_id, title, body, excerpt, visibility, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)');
         $insert->execute([$userId, $title, $body, mb_substr($body, 0, 170), $visibility, $now, $now]);
         $this->syncTags($pdo, (int) $pdo->lastInsertId(), $data['tags'] ?? []);
+
         return $this->json(['message' => 'Публикация размещена в ленте.'] + $this->postState($request, $pdo));
     }
 
@@ -124,12 +129,13 @@ class BlogApiController extends Controller
 
         $owned = $pdo->prepare('SELECT 1 FROM posts WHERE id = ? AND author_id = ?');
         $owned->execute([$postId, $userId]);
-        if (!$owned->fetchColumn()) {
+        if (! $owned->fetchColumn()) {
             return $this->fail('Публикация не найдена или принадлежит другому автору.', 403);
         }
         $update = $pdo->prepare('UPDATE posts SET title = ?, body = ?, excerpt = ?, visibility = ?, updated_at = ? WHERE id = ?');
         $update->execute([$title, $body, mb_substr($body, 0, 170), $visibility, gmdate('c'), $postId]);
         $this->syncTags($pdo, $postId, $data['tags'] ?? []);
+
         return $this->json(['message' => 'Публикация обновлена.'] + $this->postState($request, $pdo));
     }
 
@@ -141,6 +147,7 @@ class BlogApiController extends Controller
         if ($delete->rowCount() === 0) {
             return $this->fail('Публикация не найдена или принадлежит другому автору.', 403);
         }
+
         return $this->json(['message' => 'Публикация удалена.'] + $this->postState($request, $pdo));
     }
 
@@ -154,7 +161,7 @@ class BlogApiController extends Controller
 
         $exists = $pdo->prepare('SELECT 1 FROM users WHERE id = ?');
         $exists->execute([$followingId]);
-        if (!$exists->fetchColumn()) {
+        if (! $exists->fetchColumn()) {
             return $this->fail('Пользователь не найден.', 404);
         }
         $check = $pdo->prepare('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?');
@@ -166,6 +173,7 @@ class BlogApiController extends Controller
             $pdo->prepare('INSERT INTO follows (follower_id, following_id, created_at) VALUES (?, ?, ?)')->execute([$userId, $followingId, gmdate('c')]);
             $message = 'Вы подписались на автора.';
         }
+
         return $this->json(['message' => $message] + $this->postState($request, $pdo));
     }
 
@@ -176,7 +184,7 @@ class BlogApiController extends Controller
         $postStmt = $pdo->prepare("SELECT * FROM posts WHERE id = ? AND visibility = 'request'");
         $postStmt->execute([$postId]);
         $post = $postStmt->fetch();
-        if (!$post || (int) $post['author_id'] === $userId) {
+        if (! $post || (int) $post['author_id'] === $userId) {
             return $this->fail('Нельзя запросить доступ к этой публикации.');
         }
 
@@ -188,6 +196,7 @@ class BlogApiController extends Controller
         } else {
             $pdo->prepare("INSERT INTO access_requests (post_id, requester_id, status, created_at) VALUES (?, ?, 'pending', ?)")->execute([$postId, $userId, gmdate('c')]);
         }
+
         return $this->json(['message' => 'Запрос отправлен автору.'] + $this->postState($request, $pdo));
     }
 
@@ -198,10 +207,11 @@ class BlogApiController extends Controller
         $status = ($data['status'] ?? '') === 'approved' ? 'approved' : 'rejected';
         $check = $pdo->prepare('SELECT ar.id FROM access_requests ar JOIN posts p ON p.id = ar.post_id WHERE ar.id = ? AND p.author_id = ?');
         $check->execute([$requestId, $userId]);
-        if (!$check->fetchColumn()) {
+        if (! $check->fetchColumn()) {
             return $this->fail('Запрос не найден или вы не являетесь автором публикации.', 403);
         }
         $pdo->prepare('UPDATE access_requests SET status = ? WHERE id = ?')->execute([$status, $requestId]);
+
         return $this->json(['message' => $status === 'approved' ? 'Доступ открыт.' : 'Запрос отклонён.'] + $this->postState($request, $pdo));
     }
 
@@ -213,13 +223,14 @@ class BlogApiController extends Controller
         $postStmt = $pdo->prepare('SELECT * FROM posts WHERE id = ?');
         $postStmt->execute([$postId]);
         $post = $postStmt->fetch();
-        if (!$post || !$this->canReadPost($pdo, $post, $userId)) {
+        if (! $post || ! $this->canReadPost($pdo, $post, $userId)) {
             return $this->fail('Сначала получите доступ к этой публикации.', 403);
         }
         if ($text === '' || mb_strlen($text) > 240) {
             return $this->fail('Комментарий должен содержать от 1 до 240 символов.');
         }
         $pdo->prepare('INSERT INTO comments (post_id, user_id, body, created_at) VALUES (?, ?, ?, ?)')->execute([$postId, $userId, $text, gmdate('c')]);
+
         return $this->json(['message' => 'Комментарий добавлен.'] + $this->postState($request, $pdo));
     }
 
@@ -248,14 +259,16 @@ class BlogApiController extends Controller
                 $requestStmt->execute([(int) $post['id'], $viewerId]);
                 $requestStatus = $requestStmt->fetchColumn() ?: null;
             }
-            $commentStmt->execute([(int) $post['id']]);
             $comments = [];
-            foreach ($commentStmt->fetchAll() as $comment) {
-                $comments[] = ['id' => (int) $comment['id'], 'userId' => (int) $comment['user_id'], 'text' => $comment['body'], 'createdAt' => $comment['created_at']];
+            if ($readable) {
+                $commentStmt->execute([(int) $post['id']]);
+                foreach ($commentStmt->fetchAll() as $comment) {
+                    $comments[] = ['id' => (int) $comment['id'], 'userId' => (int) $comment['user_id'], 'text' => $comment['body'], 'createdAt' => $comment['created_at']];
+                }
             }
             $posts[] = [
                 'id' => (int) $post['id'], 'authorId' => (int) $post['author_id'], 'title' => $post['title'],
-                'body' => $readable ? $post['body'] : $post['excerpt'], 'privatePreview' => !$readable ? $post['body'] : null,
+                'body' => $readable ? $post['body'] : $post['excerpt'],
                 'excerpt' => $post['excerpt'], 'tags' => $this->getTags($pdo, (int) $post['id']), 'visibility' => $post['visibility'],
                 'createdAt' => $post['created_at'], 'comments' => $comments, 'canRead' => $readable, 'requestStatus' => $requestStatus,
             ];
@@ -283,6 +296,7 @@ class BlogApiController extends Controller
         $stmt = $pdo->prepare('SELECT * FROM users WHERE lower(handle) = lower(?) OR lower(name) = lower(?) LIMIT 1');
         $stmt->execute([$login, $login]);
         $user = $stmt->fetch();
+
         return $user ?: null;
     }
 
@@ -290,6 +304,7 @@ class BlogApiController extends Controller
     {
         $stmt = $pdo->prepare('SELECT t.name FROM tags t JOIN post_tags pt ON pt.tag_id = t.id WHERE pt.post_id = ? ORDER BY t.name');
         $stmt->execute([$postId]);
+
         return array_column($stmt->fetchAll(), 'name');
     }
 
@@ -306,6 +321,7 @@ class BlogApiController extends Controller
         }
         $stmt = $pdo->prepare("SELECT 1 FROM access_requests WHERE post_id = ? AND requester_id = ? AND status = 'approved'");
         $stmt->execute([(int) $post['id'], $viewerId]);
+
         return (bool) $stmt->fetchColumn();
     }
 
@@ -332,6 +348,7 @@ class BlogApiController extends Controller
     private function currentUserId(Request $request): ?int
     {
         $id = $request->session()->get('user_id');
+
         return $id === null ? null : (int) $id;
     }
 
@@ -341,6 +358,7 @@ class BlogApiController extends Controller
         if ($id === null) {
             $this->fail('Для этого действия нужно войти в аккаунт.', 401);
         }
+
         return $id;
     }
 
